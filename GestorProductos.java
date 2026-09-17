@@ -183,13 +183,30 @@ public class GestorProductos extends JFrame {
         JScrollPane scrollTabla =
                 new JScrollPane(tabla);
 
-
         // ====================================================
-        // BOTÓN ELIMINAR
+        // BOTÓN ELIMINAR CON ICONO DE TACHITO
         // ====================================================
 
-        JButton btnEliminar = new JButton("Eliminar");
+        // Cargamos la imagen de la papelera desde la carpeta del proyecto.
+        ImageIcon iconoOriginal = new ImageIcon("papelera.png");
+        
+        // Redimensionamos la imagen a 16x16 pixeles para que encaje bien en el boton.
+        Image imagenRedimensionada = iconoOriginal.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
 
+        // Creamos el ImagenIcon finl con el tamaño ajustado.
+        ImageIcon iconoTachito = new ImageIcon(imagenRedimensionada);
+
+        //Creamos el botón de eliminar asignándole el texto y el icono del tachito.
+        JButton btnEliminar = new JButton("Eliminar", iconoTachito);
+
+        // Aplicamos un color de fondo rojo al botón.
+        btnEliminar.setBackground(new Color(220, 53, 69));
+        
+        // Establecemos el texto en color blanco para contraste.
+        btnEliminar.setForeground(Color.WHITE);
+
+        // Quitamos el borde de enfoque predeterminado al hacer clic.
+        btnEliminar.setFocusPainted(false);
 
         // ====================================================
         // ETIQUETA TOTAL
