@@ -45,12 +45,15 @@ public class GestorProductos extends JFrame {
 
 
     // ========================================================
-    // COMPONENTE PARA MOSTRAR EL TOTAL
+    // COMPONENTE PARA MOSTRAR ESTADÍSTICAS Y TOTALES
     // ========================================================
-
-    // JLabel utilizado para mostrar el valor total del stock.
+    
+    // Etiquetas para visualizar la cantidad de productos, unidades totales,
+    // el valor promedio y el acumulado del stock.
     private JLabel lblTotal;
-
+    private JLabel lblTotalProductos;
+    private JLabel lblTotalUnidades;
+    private JLabel lblValorIntermedio; 
 
     // ========================================================
     // CONSTRUCTOR
@@ -209,11 +212,13 @@ public class GestorProductos extends JFrame {
         btnEliminar.setFocusPainted(false);
 
         // ====================================================
-        // ETIQUETA TOTAL
+        // ETIQUETAS PARA MOSTRAR ESTADÍSTICAS Y TOTALES
         // ====================================================
-
-        lblTotal =
-                new JLabel("Valor total del stock: $0.00");
+        
+        lblTotalProductos = new JLabel("Productos: 0");
+        lblTotalUnidades = new JLabel ("Unidades: 0");
+        lblValorIntermedio = new JLabel("Valor intermedio: $0.00");
+        lblTotal = new JLabel("Valor total del stock: $0.00");
 
 
         // ====================================================
@@ -251,15 +256,23 @@ public class GestorProductos extends JFrame {
 
 
         // ====================================================
-        // PANEL INFERIOR
+        // ORGANIZAR PANEL INFERIOR
         // ====================================================
 
         JPanel panelInferior =
                 new JPanel(new BorderLayout());
+                
+                // Subpanel con FlowLayout a la izquierda para organizar horizaontalmente
+                // el botón de eliminación y las tres etiquetas estadísticas con espaciado.
+                JPanel panelIzquierda = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 5));
+                panelIzquierda.add(btnEliminar);
+                panelIzquierda.add(lblTotalProductos);
+                panelIzquierda.add(lblTotalUnidades);
+                panelIzquierda.add(lblValorIntermedio);
 
         // Botón a la izquierda.
         panelInferior.add(
-                btnEliminar,
+                panelIzquierda,
                 BorderLayout.WEST
         );
 
@@ -561,45 +574,40 @@ public class GestorProductos extends JFrame {
 
 
     // ========================================================
-    // ACTUALIZAR TOTAL
+    // ACTUALIZAR TOTALES
     // ========================================================
 
     private void actualizarTotal() {
 
-        // Comenzamos en cero.
+        int totalProductos = modelo.getRowCount();
+        int totalUnidades = 0;
+        double valorIntermedio = 0;
         double total = 0;
 
 
-        // Recorremos todas las filas.
-        for (
-                int i = 0;
-                i < modelo.getRowCount();
-                i++
-        ) {
+        // Recorremos todas las filas, para acumular unidades, precios y totales.
+        for (int i = 0; i < totalProductos; i++) {
+                double precio = Double.parseDouble(modelo.getValueAt(i,1).toString());
+                int stock = Integer.parseInt(modelo.getValueAt(i,2).toString());
+                double valor = Double.parseDouble(modelo.getValueAt(i,4).toString());
 
-            // Obtenemos la columna 4,
-            // que corresponde a Valor Stock.
-            double valor =
-                    Double.parseDouble(
-                            modelo
-                                    .getValueAt(i, 4)
-                                    .toString()
-                    );
-
-            // Sumamos el valor.
-            total += valor;
+                totalUnidades += stock; // Acumulamos temporalmente el stock de cada producto.
+                valorIntermedio += precio; // Acumulamos temporalmento los precios unitarios.
+                total += valor; // Acumulamos el valor total por producto.
         }
 
+        // Calculamos el precio promedio únicamente si existen productos en la lista.
+        if (totalProductos > 0) {
+            valorIntermedio = valorIntermedio / totalProductos;
+        }
 
-        // Actualizamos el JLabel.
-        lblTotal.setText(
-                String.format(
-                        "Valor total del stock: $%.2f",
-                        total
-                )
-        );
-    }
+        // Actualizamos las etiquetas con los valores calculados.
+        lblTotalProductos.setText("Productos: " + totalProductos);
+        lblTotalUnidades.setText("Unidades: " + totalUnidades);
+        lblValorIntermedio.setText("Valor Intermedio: " + String.format("%.2f", valorIntermedio));
+        lblTotal.setText(String.format("Valor total del stock: $%.2f", total));
 
+}
 
     // ========================================================
     // MÉTODO MAIN
