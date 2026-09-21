@@ -1,15 +1,9 @@
-// Importamos los componentes principales de Swing.
 import javax.swing.*;
-
-// Importamos DefaultTableModel y componentes para el filtrado en tiempo real.
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-
-// Importamos clases para organizar los componentes gráficos e imágenes.
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
-
 
 // ============================================================
 // CLASE PRINCIPAL
@@ -25,41 +19,43 @@ public class GestorProductos extends JFrame {
     private JTextField txtPrecio;
     private JTextField txtStock;
     private JComboBox<String> cmbCategoria;
-    private JTextField txtBuscar; // Campo de texto para la búsqueda en tiempo real
 
+    // Campo de búsqueda
+    private JTextField txtBuscar;
+
+    // Guarda la fila seleccionada en la tabla para edición.
+    private int filaSeleccionada = -1;
 
     // ========================================================
-    // COMPONENTES DE LA TABLA Y FILTRADO
+    // COMPONENTES DE LA TABLA
     // ========================================================
 
     private JTable tabla;
     private DefaultTableModel modelo;
-    private TableRowSorter<DefaultTableModel> sorter; // Permite filtrar los productos dinámicamente
-
+    private TableRowSorter<DefaultTableModel> sorter;
 
     // ========================================================
-    // COMPONENTES PARA ESTADÍSTICAS Y TOTALES
+    // COMPONENTES DE ESTADÍSTICAS Y TOTALES
     // ========================================================
 
-    private JLabel lblTotal;
-    private JLabel lblTotalProductos;
+    private JLabel lblCantidadProductos;
     private JLabel lblTotalUnidades;
-    private JLabel lblValorIntermedio; 
-
+    private JLabel lblPrecioPromedio; // "Valor intermedio"
+    private JLabel lblTotal;          // "Valor total del stock"
 
     // ========================================================
     // CONSTRUCTOR
     // ========================================================
 
     public GestorProductos() {
+
         setTitle("Gestor de Productos");
-        setSize(850, 550);
+        setSize(1050, 600); // Ventana más ancha para alojar montos grandes
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         crearInterfaz();
     }
-
 
     // ========================================================
     // CREAR INTERFAZ
@@ -67,34 +63,26 @@ public class GestorProductos extends JFrame {
 
     private void crearInterfaz() {
 
-        // Panel con formulario de entrada
-        JPanel panelFormulario = new JPanel(new GridLayout(5, 2, 10, 10));
-        panelFormulario.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        JPanel panelSuperior = new JPanel(new BorderLayout());
 
         // ----------------------------------------------------
-        // CAMPO NOMBRE
+        // PANEL FORMULARIO
         // ----------------------------------------------------
+        JPanel panelFormulario = new JPanel(new GridLayout(5, 2, 10, 10));
+        panelFormulario.setBorder(BorderFactory.createEmptyBorder(15, 15, 10, 15));
+
         panelFormulario.add(new JLabel("Nombre:"));
         txtNombre = new JTextField();
         panelFormulario.add(txtNombre);
 
-        // ----------------------------------------------------
-        // CAMPO PRECIO
-        // ----------------------------------------------------
         panelFormulario.add(new JLabel("Precio:"));
         txtPrecio = new JTextField();
         panelFormulario.add(txtPrecio);
 
-        // ----------------------------------------------------
-        // CAMPO STOCK
-        // ----------------------------------------------------
         panelFormulario.add(new JLabel("Stock:"));
         txtStock = new JTextField();
         panelFormulario.add(txtStock);
 
-        // ----------------------------------------------------
-        // CATEGORÍA
-        // ----------------------------------------------------
         panelFormulario.add(new JLabel("Categoría:"));
         cmbCategoria = new JComboBox<>();
         cmbCategoria.addItem("Almacén");
@@ -104,18 +92,29 @@ public class GestorProductos extends JFrame {
         cmbCategoria.addItem("Otros");
         panelFormulario.add(cmbCategoria);
 
-        // ----------------------------------------------------
-        // BOTONES DEL FORMULARIO
-        // ----------------------------------------------------
         JButton btnAgregar = new JButton("Agregar");
         JButton btnLimpiar = new JButton("Limpiar");
-
         panelFormulario.add(btnAgregar);
         panelFormulario.add(btnLimpiar);
 
+        panelSuperior.add(panelFormulario, BorderLayout.CENTER);
+
+        // ----------------------------------------------------
+        // BARRA DE BÚSQUEDA
+        // ----------------------------------------------------
+        JPanel panelBusqueda = new JPanel(new BorderLayout(10, 0));
+        panelBusqueda.setBorder(BorderFactory.createEmptyBorder(0, 15, 10, 15));
+        
+        JLabel lblBuscar = new JLabel("Buscar:");
+        txtBuscar = new JTextField();
+
+        panelBusqueda.add(lblBuscar, BorderLayout.WEST);
+        panelBusqueda.add(txtBuscar, BorderLayout.CENTER);
+
+        panelSuperior.add(panelBusqueda, BorderLayout.SOUTH);
 
         // ====================================================
-        // CREAR TABLA Y SISTEMA DE FILTRADO
+        // CREAR TABLA
         // ====================================================
 
         String[] columnas = {
@@ -129,110 +128,110 @@ public class GestorProductos extends JFrame {
         modelo = new DefaultTableModel(columnas, 0);
         tabla = new JTable(modelo);
 
-        // Asignamos el TableRowSorter a la JTable para habilitar la ordenación y búsqueda
         sorter = new TableRowSorter<>(modelo);
         tabla.setRowSorter(sorter);
 
         JScrollPane scrollTabla = new JScrollPane(tabla);
 
-
-        // ----------------------------------------------------
-        // CAMPO DE BÚSQUEDA EN TIEMPO REAL
-        // ----------------------------------------------------
-        txtBuscar = new JTextField();
-
-        // Escuchamos los cambios de texto letra por letra
-        txtBuscar.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                filtrarProductos();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                filtrarProductos();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                filtrarProductos();
-            }
-        });
-
-        // Panel superior para colocar la etiqueta "Buscar:" junto al campo de texto
-        JPanel panelBusqueda = new JPanel(new BorderLayout(10, 10));
-        panelBusqueda.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
-        panelBusqueda.add(new JLabel("Buscar:"), BorderLayout.WEST);
-        panelBusqueda.add(txtBuscar, BorderLayout.CENTER);
-
-
         // ====================================================
-        // BOTÓN ELIMINAR CON ICONO DE TACHITO
+        // BOTONES DE ACCIÓN
         // ====================================================
 
-        ImageIcon iconoOriginal = new ImageIcon("papelera.png");
-        Image imagenRedimensionada = iconoOriginal.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
-        ImageIcon iconoTachito = new ImageIcon(imagenRedimensionada);
-
-        JButton btnEliminar = new JButton("Eliminar", iconoTachito);
-        btnEliminar.setBackground(new Color(220, 53, 69));
-        btnEliminar.setForeground(Color.WHITE);
+        JButton btnEliminar = new JButton("Eliminar");
+        btnEliminar.setBackground(new Color(220, 53, 69)); 
+        btnEliminar.setForeground(Color.WHITE);             
         btnEliminar.setFocusPainted(false);
 
+        try {
+            btnEliminar.setIcon(new ImageIcon(getClass().getResource("/papelera.png")));
+            btnEliminar.setIconTextGap(8);
+        } catch (Exception e) {
+            // Carga segura del icono
+        }
+
+        JButton btnEditar = new JButton("Editar");
+        try {
+            btnEditar.setIcon(new ImageIcon(getClass().getResource("/lapiz.png")));
+            btnEditar.setIconTextGap(8);
+        } catch (Exception e) {
+            // Carga segura del icono
+        }
+
+        JButton btnGuardar = new JButton("Guardar Cambios");
 
         // ====================================================
         // ETIQUETAS DE ESTADÍSTICAS Y TOTALES
         // ====================================================
 
-        lblTotalProductos = new JLabel("Productos: 0");
+        lblCantidadProductos = new JLabel("Productos: 0");
         lblTotalUnidades = new JLabel("Unidades: 0");
-        lblValorIntermedio = new JLabel("Valor Intermedio: $0.00");
+        lblPrecioPromedio = new JLabel("Valor intermedio: $0.00");
         lblTotal = new JLabel("Valor total del stock: $0.00");
 
+        Font fuenteNegrita = new Font("SansSerif", Font.BOLD, 12);
+        lblCantidadProductos.setFont(fuenteNegrita);
+        lblTotalUnidades.setFont(fuenteNegrita);
+        lblPrecioPromedio.setFont(fuenteNegrita);
+        lblTotal.setFont(fuenteNegrita);
 
         // ====================================================
-        // EVENTOS DE LOS BOTONES
+        // EVENTOS
         // ====================================================
 
         btnAgregar.addActionListener(e -> agregarProducto());
         btnLimpiar.addActionListener(e -> limpiarFormulario());
         btnEliminar.addActionListener(e -> eliminarProducto());
+        btnEditar.addActionListener(e -> editarProducto());
+        btnGuardar.addActionListener(e -> guardarCambios());
 
+        txtBuscar.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { filtrar(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { filtrar(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { filtrar(); }
+
+            private void filtrar() {
+                String texto = txtBuscar.getText().trim();
+                if (texto.isEmpty()) {
+                    sorter.setRowFilter(null);
+                } else {
+                    sorter.setRowFilter(RowFilter.regexFilter("(?i)" + texto));
+                }
+            }
+        });
 
         // ====================================================
-        // ORGANIZAR PANEL INFERIOR
+        // PANEL INFERIOR (CORREGIDO PARA EVITAR RECORTES)
         // ====================================================
 
         JPanel panelInferior = new JPanel(new BorderLayout());
-        panelInferior.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        panelInferior.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 15));
 
-        // Subpanel a la izquierda con FlowLayout para organizar el botón y las tres estadísticas
-        JPanel panelIzquierda = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
-        panelIzquierda.add(btnEliminar);
-        panelIzquierda.add(lblTotalProductos);
-        panelIzquierda.add(lblTotalUnidades);
-        panelIzquierda.add(lblValorIntermedio);
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        panelBotones.add(btnEliminar);
+        panelBotones.add(btnEditar);
+        panelBotones.add(btnGuardar);
 
-        panelInferior.add(panelIzquierda, BorderLayout.WEST);
-        panelInferior.add(lblTotal, BorderLayout.EAST);
+        JPanel panelStats = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 8));
+        panelStats.add(lblCantidadProductos);
+        panelStats.add(lblTotalUnidades);
+        panelStats.add(lblPrecioPromedio);
+        panelStats.add(lblTotal);
 
+        panelInferior.add(panelBotones, BorderLayout.WEST);
+        panelInferior.add(panelStats, BorderLayout.CENTER); // Se asigna CENTER para darle todo el espacio sobrante
 
         // ====================================================
-        // CONFIGURAR VENTANA Y PANELES
+        // CONFIGURAR VENTANA
         // ====================================================
 
         setLayout(new BorderLayout());
-
-        // Panel central que agrupa el buscador y la tabla
-        JPanel panelCentro = new JPanel(new BorderLayout());
-        panelCentro.add(panelBusqueda, BorderLayout.NORTH);
-        panelCentro.add(scrollTabla, BorderLayout.CENTER);
-
-        add(panelFormulario, BorderLayout.NORTH);
-        add(panelCentro, BorderLayout.CENTER);
+        add(panelSuperior, BorderLayout.NORTH);
+        add(scrollTabla, BorderLayout.CENTER);
         add(panelInferior, BorderLayout.SOUTH);
     }
-
 
     // ========================================================
     // AGREGAR PRODUCTO
@@ -246,12 +245,7 @@ public class GestorProductos extends JFrame {
         String categoria = cmbCategoria.getSelectedItem().toString();
 
         if (nombre.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Debe ingresar el nombre del producto.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, "Debe ingresar el nombre del producto.", "Error", JOptionPane.ERROR_MESSAGE);
             txtNombre.requestFocus();
             return;
         }
@@ -260,14 +254,9 @@ public class GestorProductos extends JFrame {
         int stock;
 
         try {
-            precio = Double.parseDouble(precioTexto.replace(",", "."));
+            precio = Double.parseDouble(precioTexto);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "El precio debe ser un número válido.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, "El precio debe ser un número válido.", "Error", JOptionPane.ERROR_MESSAGE);
             txtPrecio.requestFocus();
             return;
         }
@@ -275,57 +264,37 @@ public class GestorProductos extends JFrame {
         try {
             stock = Integer.parseInt(stockTexto);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "El stock debe ser un número entero.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, "El stock debe ser un número entero.", "Error", JOptionPane.ERROR_MESSAGE);
             txtStock.requestFocus();
             return;
         }
 
         if (precio <= 0) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "El precio debe ser mayor que cero.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, "El precio debe ser mayor que cero.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         if (stock < 0) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "El stock no puede ser negativo.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, "El stock no puede ser negativo.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         Producto producto = new Producto(nombre, precio, stock, categoria);
 
+        // Formato para PRECIO y VALOR STOCK eliminando notación científica
         modelo.addRow(new Object[] {
                 producto.getNombre(),
-                producto.getPrecio(),
+                String.format("%.2f", producto.getPrecio()).replace(",", "."),
                 producto.getStock(),
                 producto.getCategoria(),
                 String.format("%.2f", producto.getValorStock()).replace(",", ".")
         });
 
-        actualizarTotal();
+        actualizarEstadisticas();
         limpiarFormulario();
 
-        JOptionPane.showMessageDialog(
-                this,
-                "Producto agregado correctamente.",
-                "Información",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        JOptionPane.showMessageDialog(this, "Producto agregado correctamente.", "Información", JOptionPane.INFORMATION_MESSAGE);
     }
-
 
     // ========================================================
     // LIMPIAR FORMULARIO
@@ -339,21 +308,16 @@ public class GestorProductos extends JFrame {
         txtNombre.requestFocus();
     }
 
-
     // ========================================================
-    // ELIMINAR PRODUCTO (COMPATIBLE CON BUSCADOR)
+    // ELIMINAR PRODUCTO
     // ========================================================
 
     private void eliminarProducto() {
+
         int filaVista = tabla.getSelectedRow();
 
         if (filaVista == -1) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Debe seleccionar un producto.",
-                    "Aviso",
-                    JOptionPane.WARNING_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, "Debe seleccionar un producto.", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -365,60 +329,115 @@ public class GestorProductos extends JFrame {
         );
 
         if (respuesta == JOptionPane.YES_OPTION) {
-            // Convertimos el índice visual al índice real del modelo para evitar borrar datos incorrectos al estar filtrado
             int filaModelo = tabla.convertRowIndexToModel(filaVista);
             modelo.removeRow(filaModelo);
-            actualizarTotal();
+            actualizarEstadisticas();
         }
     }
 
-
     // ========================================================
-    // FILTRAR PRODUCTOS EN TIEMPO REAL
+    // EDITAR PRODUCTO
     // ========================================================
 
-    private void filtrarProductos() {
-        String texto = txtBuscar.getText().trim();
+    private void editarProducto() {
+        int filaVista = tabla.getSelectedRow();
 
-        if (texto.isEmpty()) {
-            sorter.setRowFilter(null); // Si no hay texto, se muestran todas las filas
-        } else {
-            // Búsqueda insensible a mayúsculas/minúsculas en la columna 0 (Nombre)
-            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + texto, 0));
+        if (filaVista == -1) {
+            JOptionPane.showMessageDialog(this, "Debe seleccionar un producto para editar.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
         }
+
+        filaSeleccionada = tabla.convertRowIndexToModel(filaVista);
+
+        txtNombre.setText(modelo.getValueAt(filaSeleccionada, 0).toString());
+        txtPrecio.setText(modelo.getValueAt(filaSeleccionada, 1).toString());
+        txtStock.setText(modelo.getValueAt(filaSeleccionada, 2).toString());
+        cmbCategoria.setSelectedItem(modelo.getValueAt(filaSeleccionada, 3).toString());
     }
 
+    // ========================================================
+    // GUARDAR CAMBIOS
+    // ========================================================
+
+    private void guardarCambios() {
+        if (filaSeleccionada == -1) {
+            JOptionPane.showMessageDialog(this, "Primero seleccione el producto y presione el botón 'Editar'.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            String nombre = txtNombre.getText().trim();
+            double precio = Double.parseDouble(txtPrecio.getText().trim());
+            int stock = Integer.parseInt(txtStock.getText().trim());
+            String categoria = cmbCategoria.getSelectedItem().toString();
+
+            if (nombre.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Debe ingresar el nombre del producto.", "Error", JOptionPane.ERROR_MESSAGE);
+                txtNombre.requestFocus();
+                return;
+            }
+
+            if (precio <= 0) {
+                JOptionPane.showMessageDialog(this, "El precio debe ser mayor que cero.", "Error", JOptionPane.ERROR_MESSAGE);
+                txtPrecio.requestFocus();
+                return;
+            }
+
+            if (stock < 0) {
+                JOptionPane.showMessageDialog(this, "El stock no puede ser negativo.", "Error", JOptionPane.ERROR_MESSAGE);
+                txtStock.requestFocus();
+                return;
+            }
+
+            Producto x = new Producto(nombre, precio, stock, categoria);
+
+            modelo.setValueAt(x.getNombre(), filaSeleccionada, 0);
+            modelo.setValueAt(String.format("%.2f", x.getPrecio()).replace(",", "."), filaSeleccionada, 1);
+            modelo.setValueAt(x.getStock(), filaSeleccionada, 2);
+            modelo.setValueAt(x.getCategoria(), filaSeleccionada, 3);
+            modelo.setValueAt(String.format("%.2f", x.getValorStock()).replace(",", "."), filaSeleccionada, 4);
+
+            limpiarFormulario();
+            actualizarEstadisticas();
+            filaSeleccionada = -1;
+
+            JOptionPane.showMessageDialog(this, "Producto actualizado correctamente.", "Información", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error al guardar los cambios: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
     // ========================================================
     // ACTUALIZAR ESTADÍSTICAS Y TOTALES
     // ========================================================
 
-    private void actualizarTotal() {
-        int totalProductos = modelo.getRowCount();
-        int totalUnidades = 0;
-        double valorIntermedio = 0;
-        double total = 0;
+    private void actualizarEstadisticas() {
 
-        for (int i = 0; i < totalProductos; i++) {
+        double totalValorStock = 0;
+        int totalUnidades = 0;
+        double sumaPrecios = 0;
+        int cantidadProductos = modelo.getRowCount();
+
+        for (int i = 0; i < cantidadProductos; i++) {
             double precio = Double.parseDouble(modelo.getValueAt(i, 1).toString().replace(",", "."));
             int stock = Integer.parseInt(modelo.getValueAt(i, 2).toString());
-            double valor = Double.parseDouble(modelo.getValueAt(i, 4).toString().replace(",", "."));
+            
+            String valorTexto = modelo.getValueAt(i, 4).toString().replace(",", ".");
+            double valorStock = Double.parseDouble(valorTexto);
 
+            sumaPrecios += precio;
             totalUnidades += stock;
-            valorIntermedio += precio;
-            total += valor;
+            totalValorStock += valorStock;
         }
 
-        if (totalProductos > 0) {
-            valorIntermedio = valorIntermedio / totalProductos;
-        }
+        double precioPromedio = cantidadProductos > 0 ? (sumaPrecios / cantidadProductos) : 0;
 
-        lblTotalProductos.setText("Productos: " + totalProductos);
+        lblCantidadProductos.setText("Productos: " + cantidadProductos);
         lblTotalUnidades.setText("Unidades: " + totalUnidades);
-        lblValorIntermedio.setText("Valor Intermedio: $" + String.format("%.2f", valorIntermedio));
-        lblTotal.setText(String.format("Valor total del stock: $%.2f", total));
+        lblPrecioPromedio.setText(String.format("Valor intermedio: $%.2f", precioPromedio).replace(",", "."));
+        lblTotal.setText(String.format("Valor total del stock: $%.2f", totalValorStock).replace(",", "."));
     }
-
 
     // ========================================================
     // MÉTODO MAIN
