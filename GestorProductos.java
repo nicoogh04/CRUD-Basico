@@ -1,10 +1,13 @@
 // Importamos los componentes principales de Swing.
 import javax.swing.*;
 
-// Importamos DefaultTableModel para administrar los datos de la JTable.
+// Importamos DefaultTableModel y componentes para el filtrado en tiempo real.
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
-// Importamos clases para organizar los componentes gráficos.
+// Importamos clases para organizar los componentes gráficos e imágenes.
 import java.awt.*;
 
 
@@ -12,68 +15,48 @@ import java.awt.*;
 // CLASE PRINCIPAL
 // ============================================================
 
-// GestorProductos hereda de JFrame.
-// Por lo tanto, esta clase representa una ventana.
 public class GestorProductos extends JFrame {
 
     // ========================================================
     // COMPONENTES DEL FORMULARIO
     // ========================================================
 
-    // Campo donde el usuario escribe el nombre.
     private JTextField txtNombre;
-
-    // Campo donde el usuario escribe el precio.
     private JTextField txtPrecio;
-
-    // Campo donde el usuario escribe el stock.
     private JTextField txtStock;
-
-    // Lista desplegable para seleccionar la categoría.
     private JComboBox<String> cmbCategoria;
+    private JTextField txtBuscar; // Campo de texto para la búsqueda en tiempo real
 
 
     // ========================================================
-    // COMPONENTES DE LA TABLA
+    // COMPONENTES DE LA TABLA Y FILTRADO
     // ========================================================
 
-    // JTable muestra los productos al usuario.
     private JTable tabla;
-
-    // DefaultTableModel administra las filas y columnas.
     private DefaultTableModel modelo;
+    private TableRowSorter<DefaultTableModel> sorter; // Permite filtrar los productos dinámicamente
 
 
     // ========================================================
-    // COMPONENTE PARA MOSTRAR ESTADÍSTICAS Y TOTALES
+    // COMPONENTES PARA ESTADÍSTICAS Y TOTALES
     // ========================================================
-    
-    // Etiquetas para visualizar la cantidad de productos, unidades totales,
-    // el valor promedio y el acumulado del stock.
+
     private JLabel lblTotal;
     private JLabel lblTotalProductos;
     private JLabel lblTotalUnidades;
     private JLabel lblValorIntermedio; 
+
 
     // ========================================================
     // CONSTRUCTOR
     // ========================================================
 
     public GestorProductos() {
-
-        // Título que aparecerá en la ventana.
         setTitle("Gestor de Productos");
-
-        // Tamaño de la ventana: ancho x alto.
-        setSize(800, 500);
-
-        // Al presionar X se cierra el programa.
+        setSize(850, 550);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        // Centra la ventana en la pantalla.
         setLocationRelativeTo(null);
 
-        // Llamamos al método que construye la interfaz.
         crearInterfaz();
     }
 
@@ -84,78 +67,46 @@ public class GestorProductos extends JFrame {
 
     private void crearInterfaz() {
 
-        // Creamos un panel con 5 filas y 2 columnas.
-        JPanel panelFormulario =
-                new JPanel(new GridLayout(5, 2, 10, 10));
-
-        // Agregamos un margen interno al formulario.
-        panelFormulario.setBorder(
-                BorderFactory.createEmptyBorder(
-                        15, 15, 15, 15
-                )
-        );
-
+        // Panel con formulario de entrada
+        JPanel panelFormulario = new JPanel(new GridLayout(5, 2, 10, 10));
+        panelFormulario.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         // ----------------------------------------------------
         // CAMPO NOMBRE
         // ----------------------------------------------------
-
-        // Agregamos la etiqueta.
         panelFormulario.add(new JLabel("Nombre:"));
-
-        // Creamos el campo de texto.
         txtNombre = new JTextField();
-
-        // Agregamos el campo al formulario.
         panelFormulario.add(txtNombre);
-
 
         // ----------------------------------------------------
         // CAMPO PRECIO
         // ----------------------------------------------------
-
         panelFormulario.add(new JLabel("Precio:"));
-
         txtPrecio = new JTextField();
-
         panelFormulario.add(txtPrecio);
-
 
         // ----------------------------------------------------
         // CAMPO STOCK
         // ----------------------------------------------------
-
         panelFormulario.add(new JLabel("Stock:"));
-
         txtStock = new JTextField();
-
         panelFormulario.add(txtStock);
-
 
         // ----------------------------------------------------
         // CATEGORÍA
         // ----------------------------------------------------
-
         panelFormulario.add(new JLabel("Categoría:"));
-
-        // Creamos el ComboBox.
         cmbCategoria = new JComboBox<>();
-
-        // Agregamos las opciones.
         cmbCategoria.addItem("Almacén");
         cmbCategoria.addItem("Bebidas");
         cmbCategoria.addItem("Limpieza");
         cmbCategoria.addItem("Verduleria");
         cmbCategoria.addItem("Otros");
-
-        // Agregamos el ComboBox.
         panelFormulario.add(cmbCategoria);
 
-
         // ----------------------------------------------------
-        // BOTONES
+        // BOTONES DEL FORMULARIO
         // ----------------------------------------------------
-
         JButton btnAgregar = new JButton("Agregar");
         JButton btnLimpiar = new JButton("Limpiar");
 
@@ -164,10 +115,9 @@ public class GestorProductos extends JFrame {
 
 
         // ====================================================
-        // CREAR TABLA
+        // CREAR TABLA Y SISTEMA DE FILTRADO
         // ====================================================
 
-        // Nombres de las columnas.
         String[] columnas = {
                 "Nombre",
                 "Precio",
@@ -176,137 +126,111 @@ public class GestorProductos extends JFrame {
                 "Valor Stock"
         };
 
-        // Creamos el modelo sin filas inicialmente.
         modelo = new DefaultTableModel(columnas, 0);
-
-        // Creamos la tabla utilizando nuestro modelo.
         tabla = new JTable(modelo);
 
-        // JScrollPane permite desplazarnos si hay muchas filas.
-        JScrollPane scrollTabla =
-                new JScrollPane(tabla);
+        // Asignamos el TableRowSorter a la JTable para habilitar la ordenación y búsqueda
+        sorter = new TableRowSorter<>(modelo);
+        tabla.setRowSorter(sorter);
+
+        JScrollPane scrollTabla = new JScrollPane(tabla);
+
+
+        // ----------------------------------------------------
+        // CAMPO DE BÚSQUEDA EN TIEMPO REAL
+        // ----------------------------------------------------
+        txtBuscar = new JTextField();
+
+        // Escuchamos los cambios de texto letra por letra
+        txtBuscar.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                filtrarProductos();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                filtrarProductos();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                filtrarProductos();
+            }
+        });
+
+        // Panel superior para colocar la etiqueta "Buscar:" junto al campo de texto
+        JPanel panelBusqueda = new JPanel(new BorderLayout(10, 10));
+        panelBusqueda.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        panelBusqueda.add(new JLabel("Buscar:"), BorderLayout.WEST);
+        panelBusqueda.add(txtBuscar, BorderLayout.CENTER);
+
 
         // ====================================================
         // BOTÓN ELIMINAR CON ICONO DE TACHITO
         // ====================================================
 
-        // Cargamos la imagen de la papelera desde la carpeta del proyecto.
         ImageIcon iconoOriginal = new ImageIcon("papelera.png");
-        
-        // Redimensionamos la imagen a 16x16 pixeles para que encaje bien en el boton.
         Image imagenRedimensionada = iconoOriginal.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
-
-        // Creamos el ImagenIcon finl con el tamaño ajustado.
         ImageIcon iconoTachito = new ImageIcon(imagenRedimensionada);
 
-        //Creamos el botón de eliminar asignándole el texto y el icono del tachito.
         JButton btnEliminar = new JButton("Eliminar", iconoTachito);
-
-        // Aplicamos un color de fondo rojo al botón.
         btnEliminar.setBackground(new Color(220, 53, 69));
-        
-        // Establecemos el texto en color blanco para contraste.
         btnEliminar.setForeground(Color.WHITE);
-
-        // Quitamos el borde de enfoque predeterminado al hacer clic.
         btnEliminar.setFocusPainted(false);
 
+
         // ====================================================
-        // ETIQUETAS PARA MOSTRAR ESTADÍSTICAS Y TOTALES
+        // ETIQUETAS DE ESTADÍSTICAS Y TOTALES
         // ====================================================
-        
+
         lblTotalProductos = new JLabel("Productos: 0");
-        lblTotalUnidades = new JLabel ("Unidades: 0");
-        lblValorIntermedio = new JLabel("Valor intermedio: $0.00");
+        lblTotalUnidades = new JLabel("Unidades: 0");
+        lblValorIntermedio = new JLabel("Valor Intermedio: $0.00");
         lblTotal = new JLabel("Valor total del stock: $0.00");
 
 
         // ====================================================
-        // EVENTO AGREGAR
+        // EVENTOS DE LOS BOTONES
         // ====================================================
 
-        // addActionListener detecta el clic del botón.
-        btnAgregar.addActionListener(e -> {
-
-            // Ejecutamos nuestro método.
-            agregarProducto();
-        });
-
-
-        // ====================================================
-        // EVENTO LIMPIAR
-        // ====================================================
-
-        btnLimpiar.addActionListener(e -> {
-
-            // Limpiamos los campos.
-            limpiarFormulario();
-        });
-
-
-        // ====================================================
-        // EVENTO ELIMINAR
-        // ====================================================
-
-        btnEliminar.addActionListener(e -> {
-
-            // Eliminamos el producto seleccionado.
-            eliminarProducto();
-        });
+        btnAgregar.addActionListener(e -> agregarProducto());
+        btnLimpiar.addActionListener(e -> limpiarFormulario());
+        btnEliminar.addActionListener(e -> eliminarProducto());
 
 
         // ====================================================
         // ORGANIZAR PANEL INFERIOR
         // ====================================================
 
-        JPanel panelInferior =
-                new JPanel(new BorderLayout());
-                
-                // Subpanel con FlowLayout a la izquierda para organizar horizaontalmente
-                // el botón de eliminación y las tres etiquetas estadísticas con espaciado.
-                JPanel panelIzquierda = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 5));
-                panelIzquierda.add(btnEliminar);
-                panelIzquierda.add(lblTotalProductos);
-                panelIzquierda.add(lblTotalUnidades);
-                panelIzquierda.add(lblValorIntermedio);
+        JPanel panelInferior = new JPanel(new BorderLayout());
+        panelInferior.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
-        // Botón a la izquierda.
-        panelInferior.add(
-                panelIzquierda,
-                BorderLayout.WEST
-        );
+        // Subpanel a la izquierda con FlowLayout para organizar el botón y las tres estadísticas
+        JPanel panelIzquierda = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        panelIzquierda.add(btnEliminar);
+        panelIzquierda.add(lblTotalProductos);
+        panelIzquierda.add(lblTotalUnidades);
+        panelIzquierda.add(lblValorIntermedio);
 
-        // Total a la derecha.
-        panelInferior.add(
-                lblTotal,
-                BorderLayout.EAST
-        );
+        panelInferior.add(panelIzquierda, BorderLayout.WEST);
+        panelInferior.add(lblTotal, BorderLayout.EAST);
 
 
         // ====================================================
-        // CONFIGURAR VENTANA
+        // CONFIGURAR VENTANA Y PANELES
         // ====================================================
 
-        // Utilizamos BorderLayout para la ventana.
         setLayout(new BorderLayout());
 
-        // Formulario arriba.
-        add(
-                panelFormulario,
-                BorderLayout.NORTH
-        );
+        // Panel central que agrupa el buscador y la tabla
+        JPanel panelCentro = new JPanel(new BorderLayout());
+        panelCentro.add(panelBusqueda, BorderLayout.NORTH);
+        panelCentro.add(scrollTabla, BorderLayout.CENTER);
 
-        // Tabla en el centro.
-        add(
-                scrollTabla,
-                BorderLayout.CENTER
-        );
-
-        // Panel inferior abajo.
-        add(
-                panelInferior,
-                BorderLayout.SOUTH
-        );
+        add(panelFormulario, BorderLayout.NORTH);
+        add(panelCentro, BorderLayout.CENTER);
+        add(panelInferior, BorderLayout.SOUTH);
     }
 
 
@@ -316,183 +240,84 @@ public class GestorProductos extends JFrame {
 
     private void agregarProducto() {
 
-        // Obtenemos el nombre escrito.
-        // trim() elimina espacios al principio y al final.
-        String nombre =
-                txtNombre.getText().trim();
-
-        // Obtenemos el precio como texto.
-        String precioTexto =
-                txtPrecio.getText().trim();
-
-        // Obtenemos el stock como texto.
-        String stockTexto =
-                txtStock.getText().trim();
-
-        // Obtenemos la categoría seleccionada.
-        String categoria =
-                cmbCategoria.getSelectedItem().toString();
-
-
-        // ====================================================
-        // VALIDAR NOMBRE
-        // ====================================================
+        String nombre = txtNombre.getText().trim();
+        String precioTexto = txtPrecio.getText().trim();
+        String stockTexto = txtStock.getText().trim();
+        String categoria = cmbCategoria.getSelectedItem().toString();
 
         if (nombre.isEmpty()) {
-
             JOptionPane.showMessageDialog(
                     this,
                     "Debe ingresar el nombre del producto.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
-
-            // Volvemos el cursor al campo Nombre.
             txtNombre.requestFocus();
-
-            // Interrumpimos el método.
             return;
         }
 
-
-        // Variables donde almacenaremos
-        // los valores convertidos.
         double precio;
         int stock;
 
-
-        // ====================================================
-        // CONVERTIR PRECIO
-        // ====================================================
-
         try {
-
-            // Convertimos String a double.
-            precio =
-                    Double.parseDouble(precioTexto);
-
+            precio = Double.parseDouble(precioTexto.replace(",", "."));
         } catch (NumberFormatException e) {
-
-            // Si la conversión falla, mostramos un error.
             JOptionPane.showMessageDialog(
                     this,
                     "El precio debe ser un número válido.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
-
             txtPrecio.requestFocus();
-
             return;
         }
 
-
-        // ====================================================
-        // CONVERTIR STOCK
-        // ====================================================
-
         try {
-
-            // Convertimos String a int.
-            stock =
-                    Integer.parseInt(stockTexto);
-
+            stock = Integer.parseInt(stockTexto);
         } catch (NumberFormatException e) {
-
             JOptionPane.showMessageDialog(
                     this,
                     "El stock debe ser un número entero.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
-
             txtStock.requestFocus();
-
             return;
         }
 
-
-        // ====================================================
-        // VALIDAR PRECIO
-        // ====================================================
-
         if (precio <= 0) {
-
             JOptionPane.showMessageDialog(
                     this,
                     "El precio debe ser mayor que cero.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
-
             return;
         }
 
-
-        // ====================================================
-        // VALIDAR STOCK
-        // ====================================================
-
         if (stock < 0) {
-
             JOptionPane.showMessageDialog(
                     this,
                     "El stock no puede ser negativo.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE
             );
-
             return;
         }
 
+        Producto producto = new Producto(nombre, precio, stock, categoria);
 
-        // ====================================================
-        // CREAR OBJETO
-        // ====================================================
-
-        // Creamos un objeto Producto utilizando
-        // los datos ingresados por el usuario.
-        Producto producto =
-                new Producto(
-                        nombre,
-                        precio,
-                        stock,
-                        categoria
-                );
-
-
-        // ====================================================
-        // AGREGAR A LA TABLA
-        // ====================================================
-
-        // addRow agrega una nueva fila.
         modelo.addRow(new Object[] {
-
-                // Columna 1.
                 producto.getNombre(),
-
-                // Columna 2.
                 producto.getPrecio(),
-
-                // Columna 3.
                 producto.getStock(),
-
-                // Columna 4.
                 producto.getCategoria(),
-
-                // Columna 5.
-                producto.getValorStock()
+                String.format("%.2f", producto.getValorStock()).replace(",", ".")
         });
 
-
-        // Actualizamos el total.
         actualizarTotal();
-
-        // Limpiamos el formulario.
         limpiarFormulario();
 
-
-        // Informamos que la operación fue exitosa.
         JOptionPane.showMessageDialog(
                 this,
                 "Producto agregado correctamente.",
@@ -507,124 +332,101 @@ public class GestorProductos extends JFrame {
     // ========================================================
 
     private void limpiarFormulario() {
-
-        // Borramos el nombre.
         txtNombre.setText("");
-
-        // Borramos el precio.
         txtPrecio.setText("");
-
-        // Borramos el stock.
         txtStock.setText("");
-
-        // Seleccionamos la primera categoría.
         cmbCategoria.setSelectedIndex(0);
-
-        // Volvemos a colocar el cursor en Nombre.
         txtNombre.requestFocus();
     }
 
 
     // ========================================================
-    // ELIMINAR PRODUCTO
+    // ELIMINAR PRODUCTO (COMPATIBLE CON BUSCADOR)
     // ========================================================
 
     private void eliminarProducto() {
+        int filaVista = tabla.getSelectedRow();
 
-        // getSelectedRow() devuelve el índice
-        // de la fila seleccionada.
-        int filaSeleccionada =
-                tabla.getSelectedRow();
-
-
-        // Si devuelve -1 no hay selección.
-        if (filaSeleccionada == -1) {
-
+        if (filaVista == -1) {
             JOptionPane.showMessageDialog(
                     this,
                     "Debe seleccionar un producto.",
                     "Aviso",
                     JOptionPane.WARNING_MESSAGE
             );
-
             return;
         }
 
+        int respuesta = JOptionPane.showConfirmDialog(
+                this,
+                "¿Está seguro de eliminar el producto?",
+                "Confirmar eliminación",
+                JOptionPane.YES_NO_OPTION
+        );
 
-        // Pedimos confirmación al usuario.
-        int respuesta =
-                JOptionPane.showConfirmDialog(
-                        this,
-                        "¿Está seguro de eliminar el producto?",
-                        "Confirmar eliminación",
-                        JOptionPane.YES_NO_OPTION
-                );
-
-
-        // Comprobamos si respondió "Sí".
         if (respuesta == JOptionPane.YES_OPTION) {
-
-            // Eliminamos la fila.
-            modelo.removeRow(filaSeleccionada);
-
-            // Recalculamos el total.
+            // Convertimos el índice visual al índice real del modelo para evitar borrar datos incorrectos al estar filtrado
+            int filaModelo = tabla.convertRowIndexToModel(filaVista);
+            modelo.removeRow(filaModelo);
             actualizarTotal();
         }
     }
 
 
     // ========================================================
-    // ACTUALIZAR TOTALES
+    // FILTRAR PRODUCTOS EN TIEMPO REAL
+    // ========================================================
+
+    private void filtrarProductos() {
+        String texto = txtBuscar.getText().trim();
+
+        if (texto.isEmpty()) {
+            sorter.setRowFilter(null); // Si no hay texto, se muestran todas las filas
+        } else {
+            // Búsqueda insensible a mayúsculas/minúsculas en la columna 0 (Nombre)
+            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + texto, 0));
+        }
+    }
+
+
+    // ========================================================
+    // ACTUALIZAR ESTADÍSTICAS Y TOTALES
     // ========================================================
 
     private void actualizarTotal() {
-
         int totalProductos = modelo.getRowCount();
         int totalUnidades = 0;
         double valorIntermedio = 0;
         double total = 0;
 
-
-        // Recorremos todas las filas, para acumular unidades, precios y totales.
         for (int i = 0; i < totalProductos; i++) {
-                double precio = Double.parseDouble(modelo.getValueAt(i,1).toString());
-                int stock = Integer.parseInt(modelo.getValueAt(i,2).toString());
-                double valor = Double.parseDouble(modelo.getValueAt(i,4).toString());
+            double precio = Double.parseDouble(modelo.getValueAt(i, 1).toString().replace(",", "."));
+            int stock = Integer.parseInt(modelo.getValueAt(i, 2).toString());
+            double valor = Double.parseDouble(modelo.getValueAt(i, 4).toString().replace(",", "."));
 
-                totalUnidades += stock; // Acumulamos temporalmente el stock de cada producto.
-                valorIntermedio += precio; // Acumulamos temporalmento los precios unitarios.
-                total += valor; // Acumulamos el valor total por producto.
+            totalUnidades += stock;
+            valorIntermedio += precio;
+            total += valor;
         }
 
-        // Calculamos el precio promedio únicamente si existen productos en la lista.
         if (totalProductos > 0) {
             valorIntermedio = valorIntermedio / totalProductos;
         }
 
-        // Actualizamos las etiquetas con los valores calculados.
         lblTotalProductos.setText("Productos: " + totalProductos);
         lblTotalUnidades.setText("Unidades: " + totalUnidades);
-        lblValorIntermedio.setText("Valor Intermedio: " + String.format("%.2f", valorIntermedio));
+        lblValorIntermedio.setText("Valor Intermedio: $" + String.format("%.2f", valorIntermedio));
         lblTotal.setText(String.format("Valor total del stock: $%.2f", total));
+    }
 
-}
 
     // ========================================================
     // MÉTODO MAIN
     // ========================================================
 
-    // Punto de entrada de nuestro programa.
     public static void main(String[] args) {
-
-        // invokeLater ejecuta la creación de la GUI
-        // en el hilo de eventos de Swing.
         SwingUtilities.invokeLater(() -> {
-
-            // Creamos la ventana.
-            GestorProductos ventana =
-                    new GestorProductos();
-
-            // Mostramos la ventana.
+            GestorProductos ventana = new GestorProductos();
             ventana.setVisible(true);
         });
     }
